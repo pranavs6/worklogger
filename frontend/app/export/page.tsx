@@ -49,14 +49,14 @@ export default function ExportPage() {
       if (dateFilter) logsParams.append('date', dateFilter)
       if (eventFilter) logsParams.append('event', eventFilter)
       
-      const logsResponse = await axios.get(`/api/logs?${logsParams.toString()}`)
+      const logsResponse = await axios.get(getApiUrl(`/api/logs?${logsParams.toString()}`))
       setLogs(logsResponse.data.logs)
       
       // Fetch tasks
       const tasksParams = new URLSearchParams()
       if (statusFilter) tasksParams.append('status', statusFilter)
       
-      const tasksResponse = await axios.get(`/api/tasks?${tasksParams.toString()}`)
+      const tasksResponse = await axios.get(getApiUrl(`/api/tasks?${tasksParams.toString()}`))
       setTasks(tasksResponse.data.tasks)
       
       setError(null)
@@ -74,7 +74,8 @@ export default function ExportPage() {
       
       if (exportType === 'logs') {
         if (exportFormat === 'csv') {
-          const response = await axios.get(getApiUrl('/api/export?format=csv'), {
+          // Use backend export endpoint for CSV
+          const response = await axios.get(getApiUrl('/api/export?type=logs'), {
             responseType: 'blob'
           })
           
@@ -87,6 +88,7 @@ export default function ExportPage() {
           link.remove()
           window.URL.revokeObjectURL(url)
         } else {
+          // Use frontend JSON export for logs
           const jsonData = JSON.stringify(logs, null, 2)
           const blob = new Blob([jsonData], { type: 'application/json' })
           const url = window.URL.createObjectURL(blob)
@@ -99,34 +101,43 @@ export default function ExportPage() {
           window.URL.revokeObjectURL(url)
         }
       } else if (exportType === 'tasks') {
-        const dataStr = exportFormat === 'csv' ? convertTasksToCSV(tasks) : JSON.stringify(tasks, null, 2)
-        const mimeType = exportFormat === 'csv' ? 'text/csv' : 'application/json'
-        const extension = exportFormat === 'csv' ? 'csv' : 'json'
-        
-        const blob = new Blob([dataStr], { type: mimeType })
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', `work_tasks_${timestamp}.${extension}`)
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
-        window.URL.revokeObjectURL(url)
-      } else if (exportType === 'both') {
-        // Export both logs and tasks
-        const logsResponse = await axios.get(getApiUrl('/api/export?format=json'))
-        const combinedData = {
-          logs: logsResponse.data,
-          tasks: tasks,
-          exported_at: new Date().toISOString()
+        if (exportFormat === 'csv') {
+          // Use backend export endpoint for CSV
+          const response = await axios.get(getApiUrl('/api/export?type=tasks'), {
+            responseType: 'blob'
+          })
+          
+          const url = window.URL.createObjectURL(new Blob([response.data]))
+          const link = document.createElement('a')
+          link.href = url
+          link.setAttribute('download', `work_tasks_${timestamp}.csv`)
+          document.body.appendChild(link)
+          link.click()
+          link.remove()
+          window.URL.revokeObjectURL(url)
+        } else {
+          // Use frontend JSON export for tasks
+          const jsonData = JSON.stringify(tasks, null, 2)
+          const blob = new Blob([jsonData], { type: 'application/json' })
+          const url = window.URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+          link.setAttribute('download', `work_tasks_${timestamp}.json`)
+          document.body.appendChild(link)
+          link.click()
+          link.remove()
+          window.URL.revokeObjectURL(url)
         }
+      } else if (exportType === 'both') {
+        // Export both logs and tasks using backend combined export
+        const response = await axios.get(getApiUrl('/api/export?type=combined'), {
+          responseType: 'blob'
+        })
         
-        const dataStr = JSON.stringify(combinedData, null, 2)
-        const blob = new Blob([dataStr], { type: 'application/json' })
-        const url = window.URL.createObjectURL(blob)
+        const url = window.URL.createObjectURL(new Blob([response.data]))
         const link = document.createElement('a')
         link.href = url
-        link.setAttribute('download', `work_data_${timestamp}.json`)
+        link.setAttribute('download', `work_data_${timestamp}.csv`)
         document.body.appendChild(link)
         link.click()
         link.remove()
@@ -134,6 +145,7 @@ export default function ExportPage() {
       }
     } catch (err) {
       setError('Failed to export data')
+      console.error('Export error:', err)
     }
   }
 
@@ -236,7 +248,7 @@ export default function ExportPage() {
                     <option value="json">JSON (Data)</option>
                   </select>
                   {exportType === 'both' && (
-                    <p className="govuk-hint">Combined export is only available in JSON format</p>
+                    <p className="govuk-hint">Combined export is only available in CSV format</p>
                   )}
                 </div>
 
