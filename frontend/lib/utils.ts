@@ -1,8 +1,8 @@
 // Utility functions for date/time handling
 
 /**
- * Format a UTC timestamp for display without timezone conversion
- * The backend sends UTC timestamps, so we display them as-is
+ * Format a timestamp for display in IST (Indian Standard Time)
+ * The backend sends IST timestamps, so we display them in IST
  */
 export const formatTimestamp = (timestamp: string | Date): string => {
   const date = new Date(timestamp)
@@ -13,12 +13,12 @@ export const formatTimestamp = (timestamp: string | Date): string => {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    timeZone: 'UTC' // Display as UTC to avoid timezone conversion
+    timeZone: 'Asia/Kolkata' // Display in IST
   })
 }
 
 /**
- * Format a date for display without timezone conversion
+ * Format a date for display in IST
  */
 export const formatDate = (date: string | Date): string => {
   const d = new Date(date)
@@ -26,12 +26,12 @@ export const formatDate = (date: string | Date): string => {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-    timeZone: 'UTC'
+    timeZone: 'Asia/Kolkata'
   })
 }
 
 /**
- * Get relative time (e.g., "2 hours ago") without timezone conversion
+ * Get relative time (e.g., "2 hours ago") in IST
  */
 export const getRelativeTime = (timestamp: string | Date): string => {
   const now = new Date()

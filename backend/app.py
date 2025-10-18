@@ -5,7 +5,7 @@ import psycopg2.extras
 import os
 import json
 import requests
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import pandas as pd
 from math import radians, cos, sin, asin, sqrt
 from dotenv import load_dotenv
@@ -21,6 +21,9 @@ CORS(app)
 print("🔧 Configuring Neon database connection...")
 DATABASE_URL = os.getenv('DATABASE_URL', 'NOURLHERE')
 print(f"📊 Using Neon database: {DATABASE_URL[:50]}...")
+
+# IST timezone (UTC+5:30)
+IST = timezone(timedelta(hours=5, minutes=30))
 
 def get_db_connection():
     """Get database connection (create new connection each time for reliability)"""
@@ -94,12 +97,12 @@ def get_place_from_location(lat, lon):
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
-    return jsonify({"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()})
+    return jsonify({"status": "healthy", "timestamp": datetime.now(IST).isoformat()})
 
 @app.route('/health', methods=['GET'])
 def health_check_alt():
     """Alternative health check endpoint"""
-    return jsonify({"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()})
+    return jsonify({"status": "healthy", "timestamp": datetime.now(IST).isoformat()})
 
 @app.route('/api/log', methods=['POST'])
 def log_event():
@@ -136,7 +139,7 @@ def log_event():
             cursor.close()
             conn.close()
         
-        timestamp = datetime.now(timezone.utc)
+        timestamp = datetime.now(IST)
         
         # Auto-calculate duration for exit events
         if event == 'exit' and duration_minutes == 0:
@@ -202,7 +205,7 @@ def log_event_url_params(event, lat, lon):
             return jsonify({"error": "Invalid latitude or longitude format"}), 400
         
         # Get current timestamp
-        timestamp = datetime.now(timezone.utc)
+        timestamp = datetime.now(IST)
         
         # Determine place from location using geofence matching
         place_name = get_place_from_location(lat_float, lon_float)
@@ -493,7 +496,7 @@ def tasks():
             cursor = conn.cursor()
             
             # Generate new ID
-            new_id = f"task_{int(datetime.now(timezone.utc).timestamp())}"
+            new_id = f"task_{int(datetime.now(IST).timestamp())}"
             
             # Insert new task
             cursor.execute("""
@@ -504,7 +507,7 @@ def tasks():
                 data['title'],
                 data.get('description', ''),
                 'pending',
-                datetime.now(timezone.utc),
+                datetime.now(IST),
                 data.get('priority', 'medium'),
                 data.get('due_by')
             ))
@@ -518,7 +521,7 @@ def tasks():
                 "title": data['title'],
                 "description": data.get('description', ''),
                 "status": "pending",
-                "created_at": datetime.now(timezone.utc).isoformat(),
+                "created_at": datetime.now(IST).isoformat(),
                 "completed_at": None,
                 "priority": data.get('priority', 'medium')
             }
@@ -551,7 +554,7 @@ def update_task(task_id):
                 params.append(data['status'])
                 if data['status'] == 'completed':
                     updates.append("completed_at = %s")
-                    params.append(datetime.now(timezone.utc))
+                    params.append(datetime.now(IST))
                 else:
                     updates.append("completed_at = %s")
                     params.append(None)
@@ -717,7 +720,7 @@ def export_data():
                         ]
                         output.write(','.join(row) + '\n')
                 
-                filename = f'work_logs_{datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")}.csv'
+                filename = f'work_logs_{datetime.now(IST).strftime("%Y%m%d_%H%M%S")}.csv'
                 
             elif export_type == 'places':
                 cursor.execute("SELECT * FROM places ORDER BY name")
@@ -739,7 +742,7 @@ def export_data():
                         ]
                         output.write(','.join(row) + '\n')
                 
-                filename = f'work_places_{datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")}.csv'
+                filename = f'work_places_{datetime.now(IST).strftime("%Y%m%d_%H%M%S")}.csv'
                 
             elif export_type == 'tasks':
                 cursor.execute("SELECT * FROM tasks ORDER BY created_at DESC")
@@ -763,7 +766,7 @@ def export_data():
                         ]
                         output.write(','.join(row) + '\n')
                 
-                filename = f'work_tasks_{datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")}.csv'
+                filename = f'work_tasks_{datetime.now(IST).strftime("%Y%m%d_%H%M%S")}.csv'
                 
             elif export_type == 'events':
                 cursor.execute("SELECT * FROM events ORDER BY date DESC")
@@ -783,7 +786,7 @@ def export_data():
                         ]
                         output.write(','.join(row) + '\n')
                 
-                filename = f'work_events_{datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")}.csv'
+                filename = f'work_events_{datetime.now(IST).strftime("%Y%m%d_%H%M%S")}.csv'
                 
             elif export_type == 'combined':
                 # Export all data in a single CSV with multiple sheets/sections
@@ -873,7 +876,7 @@ def export_data():
                         ]
                         output.write(','.join(row) + '\n')
                 
-                filename = f'worklog_combined_{datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")}.csv'
+                filename = f'worklog_combined_{datetime.now(IST).strftime("%Y%m%d_%H%M%S")}.csv'
             
             else:
                 cursor.close()
@@ -930,7 +933,7 @@ def events():
             cursor = conn.cursor()
             
             # Generate new ID
-            new_id = f"event_{int(datetime.now(timezone.utc).timestamp())}"
+            new_id = f"event_{int(datetime.now(IST).timestamp())}"
             
             # Insert new event
             cursor.execute("""
