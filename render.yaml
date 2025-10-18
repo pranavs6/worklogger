@@ -1,0 +1,45 @@
+services:
+  # Backend Flask API
+  - type: web
+    name: worklogger-backend
+    env: python
+    plan: free
+    buildCommand: |
+      cd backend
+      pip install -r requirements.txt
+    startCommand: |
+      cd backend
+      python app.py
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PORT
+        value: 5051
+    healthCheckPath: /api/health
+    autoDeploy: true
+    branch: main
+    rootDir: backend
+
+  # Frontend Next.js App
+  - type: web
+    name: worklogger-frontend
+    env: static
+    plan: free
+    buildCommand: |
+      cd frontend
+      npm install
+      npm run build
+    staticPublishPath: frontend/out
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://worklogger-backend.onrender.com
+    autoDeploy: true
+    branch: main
+    rootDir: frontend
+
+# Database (optional - for future PostgreSQL upgrade)
+# databases:
+#   - name: worklogger-db
+#     plan: free
+#     databaseName: worklogger
+#     user: worklogger_user
