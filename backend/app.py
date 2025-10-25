@@ -15,7 +15,7 @@ import io
 load_dotenv('.env.production')
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=['http://13.40.49.46:3000', 'http://localhost:3000', 'http://0.0.0.0:3000'])
 
 # Database configuration - Using Neon database
 print("🔧 Configuring Neon database connection...")
@@ -75,7 +75,7 @@ def get_place_from_location(lat, lon):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        
+    
         cursor.execute("SELECT * FROM places")
         places = cursor.fetchall()
         
