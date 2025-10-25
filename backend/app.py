@@ -147,14 +147,14 @@ def log_event():
                 conn = get_db_connection()
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT timestamp FROM logs 
+                    SELECT timestamp AT TIME ZONE 'Asia/Kolkata' FROM logs 
                     WHERE event = 'arrive' 
                     ORDER BY timestamp DESC 
                     LIMIT 1
                 """)
                 result = cursor.fetchone()
                 if result:
-                    arrive_time = result[0]
+                    arrive_time = result[0]  # Already in IST from query
                     duration_minutes = int((timestamp - arrive_time).total_seconds() / 60)
                     if duration_minutes < 0:
                         duration_minutes = 0
@@ -229,14 +229,14 @@ def log_event_url_params(event, lat, lon):
                 conn = get_db_connection()
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT timestamp FROM logs 
+                    SELECT timestamp AT TIME ZONE 'Asia/Kolkata' FROM logs 
                     WHERE event = 'arrive' 
                     ORDER BY timestamp DESC 
                     LIMIT 1
                 """)
                 result = cursor.fetchone()
                 if result:
-                    arrive_time = result[0]
+                    arrive_time = result[0]  # Already in IST from query
                     duration_minutes = int((timestamp - arrive_time).total_seconds() / 60)
                     if duration_minutes < 0:
                         duration_minutes = 0
@@ -287,7 +287,7 @@ def get_logs():
         
         # Build query with filters
         query = """
-            SELECT l.*, p.name as place_name
+            SELECT l.id, l.timestamp AT TIME ZONE 'Asia/Kolkata' as timestamp, l.event, l.lat, l.lon, l.place_id, l.notes, l.duration_minutes, l.mode, p.name as place_name
             FROM logs l
             LEFT JOIN places p ON l.place_id = p.id
         """
@@ -477,7 +477,7 @@ def tasks():
             conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             
-            cursor.execute("SELECT * FROM tasks ORDER BY created_at DESC")
+            cursor.execute("SELECT id, title, description, status, created_at AT TIME ZONE 'Asia/Kolkata' as created_at, completed_at AT TIME ZONE 'Asia/Kolkata' as completed_at, priority, due_by FROM tasks ORDER BY created_at DESC")
             tasks = cursor.fetchall()
             
             cursor.close()
@@ -692,22 +692,22 @@ def export_data():
             
             if export_type == 'logs':
                 cursor.execute("""
-                    SELECT l.*, p.name as place_name
+                    SELECT l.id, l.timestamp AT TIME ZONE 'Asia/Kolkata' as timestamp, l.event, l.lat, l.lon, l.place_id, l.notes, l.duration_minutes, l.mode, p.name as place_name
                     FROM logs l
                     LEFT JOIN places p ON l.place_id = p.id
                     ORDER BY l.timestamp DESC
                 """)
-                data = cursor.fetchall()
+                logs = cursor.fetchall()
                 
                 # Create CSV in memory
                 output = io.StringIO()
-                if data:
+                if logs:
                     # Write header
                     fieldnames = ['timestamp', 'event', 'lat', 'lon', 'place', 'notes', 'duration_minutes', 'mode']
                     output.write(','.join(fieldnames) + '\n')
                     
                     # Write data
-                    for log in data:
+                    for log in logs:
                         row = [
                             log['timestamp'].isoformat() if log['timestamp'] else '',
                             log['event'],
@@ -745,15 +745,15 @@ def export_data():
                 filename = f'work_places_{datetime.now(IST).strftime("%Y%m%d_%H%M%S")}.csv'
                 
             elif export_type == 'tasks':
-                cursor.execute("SELECT * FROM tasks ORDER BY created_at DESC")
-                data = cursor.fetchall()
+                cursor.execute("SELECT id, title, description, status, created_at AT TIME ZONE 'Asia/Kolkata' as created_at, completed_at AT TIME ZONE 'Asia/Kolkata' as completed_at, priority, due_by FROM tasks ORDER BY created_at DESC")
+                tasks = cursor.fetchall()
                 
                 output = io.StringIO()
-                if data:
+                if tasks:
                     fieldnames = ['id', 'title', 'description', 'status', 'created_at', 'completed_at', 'priority', 'due_by']
                     output.write(','.join(fieldnames) + '\n')
                     
-                    for task in data:
+                    for task in tasks:
                         row = [
                             task['id'],
                             task['title'],
@@ -794,7 +794,7 @@ def export_data():
                 
                 # Section 1: Logs
                 cursor.execute("""
-                    SELECT l.*, p.name as place_name
+                    SELECT l.id, l.timestamp AT TIME ZONE 'Asia/Kolkata' as timestamp, l.event, l.lat, l.lon, l.place_id, l.notes, l.duration_minutes, l.mode, p.name as place_name
                     FROM logs l
                     LEFT JOIN places p ON l.place_id = p.id
                     ORDER BY l.timestamp DESC
@@ -839,7 +839,7 @@ def export_data():
                         output.write(','.join(row) + '\n')
                 
                 output.write('\n=== TASKS ===\n')
-                cursor.execute("SELECT * FROM tasks ORDER BY created_at DESC")
+                cursor.execute("SELECT id, title, description, status, created_at AT TIME ZONE 'Asia/Kolkata' as created_at, completed_at AT TIME ZONE 'Asia/Kolkata' as completed_at, priority, due_by FROM tasks ORDER BY created_at DESC")
                 tasks = cursor.fetchall()
                 
                 if tasks:
